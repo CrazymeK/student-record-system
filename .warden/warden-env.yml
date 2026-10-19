@@ -1,0 +1,24 @@
+services:
+    nginx:
+      volumes:
+        - ./.warden/nginx/nginx.conf:/etc/nginx/nginx.conf
+    php-fpm:
+        image: docker.io/wardenenv/php-fpm:${PHP_VERSION:-8.5}${WARDEN_SVC_PHP_VARIANT:-}
+        volumes:
+            - ./.warden/php/custom-config.ini:/etc/php.d/custom-config.ini
+    php-debug:
+        image: docker.io/wardenenv/php-fpm:8.5-xdebug3
+        volumes:
+            - ./.warden/php/custom-config.ini:/etc/php.d/custom-config.ini
+    phpmyadmin:
+        restart: always
+        image: docker.io/library/phpmyadmin:latest
+        hostname: ${WARDEN_ENV_NAME}-phpmyadmin
+        domainname: phpmyadmin.${WARDEN_ENV_NAME}.test
+        ports:
+            - 9500:80
+        environment:
+            - PMA_HOSTS=${WARDEN_ENV_NAME}-db-1
+            - PMA_USER=app
+            - PMA_PASSWORD=app
+            - PMA_ABSOLUTE_URI=http://phpmyadmin.${TRAEFIK_DOMAIN}
