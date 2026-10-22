@@ -79,7 +79,7 @@ src/app/Config/Routes.php                 explicit student routes
 
 Every push to `main` runs `.github/workflows/deploy.yml`, which connects to the
 production server over SSH and performs the same steps as a manual deployment.
-It can also be started by hand from the **Actions** tab (**Deploy to production
+It can also be started by hand from the **Actions** tab (**🚀 Deploy NORSU Student Record System
 → Run workflow**).
 
 Required repository secrets (Settings → Secrets and variables → Actions):
@@ -89,7 +89,7 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 | `SSH_HOST`        | Server hostname or IP                                      |
 | `SSH_PORT`        | SSH port, normally `22`                                    |
 | `SSH_USER`        | Deployment user on the server                              |
-| `SSH_PRIVATE_KEY` | Private half of a dedicated `github-actions-deploy` key    |
+| `SSH_KEY`         | Private half of a dedicated `github-actions-deploy` key    |
 | `SSH_KNOWN_HOSTS` | Server host key from `ssh-keyscan -H <host>`, verified     |
 | `DEPLOY_PATH`     | Absolute path of this repository's clone on the server     |
 
