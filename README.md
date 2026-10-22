@@ -74,3 +74,37 @@ src/app/Views/layouts/main.php            shared Bootstrap layout
 src/app/Views/students/                   index, create, show, edit
 src/app/Config/Routes.php                 explicit student routes
 ```
+
+## Deployment with GitHub Actions
+
+Every push to `main` runs `.github/workflows/deploy.yml`, which connects to the
+production server over SSH and performs the same steps as a manual deployment.
+It can also be started by hand from the **Actions** tab (**Deploy to production
+→ Run workflow**).
+
+Required repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret            | Contents                                                   |
+|-------------------|------------------------------------------------------------|
+| `SSH_HOST`        | Server hostname or IP                                      |
+| `SSH_PORT`        | SSH port, normally `22`                                    |
+| `SSH_USER`        | Deployment user on the server                              |
+| `SSH_PRIVATE_KEY` | Private half of a dedicated `github-actions-deploy` key    |
+| `SSH_KNOWN_HOSTS` | Server host key from `ssh-keyscan -H <host>`, verified     |
+| `DEPLOY_PATH`     | Absolute path of this repository's clone on the server     |
+
+The production `src/.env` is created once on the server and is never stored in
+GitHub. The workflow refuses to deploy if the server copy has local
+modifications.
+
+Manual deployment, if Actions is unavailable:
+
+```bash
+ssh user@server
+cd /path/to/student-record-system
+git pull origin main
+cd src
+composer install --no-dev --optimize-autoloader
+php spark migrate
+php spark cache:clear
+```

@@ -1,0 +1,144 @@
+# NORSU Student Record System - deployment to the production server.
+#
+# This workflow does exactly what we do by hand in class:
+#
+#   ssh user@server
+#   cd <project>
+#   git pull origin main
+#   cd src
+#   composer install --no-dev --optimize-autoloader
+#   php spark migrate
+#   php spark cache:clear
+#
+# The only difference is that GitHub runs it for us after every push to main.
+# Nothing here contains a server address, user name, key or password.
+# Those live in the repository's GitHub Secrets (Settings > Secrets and
+# variables > Actions):
+#
+#   SSH_HOST         server hostname or IP
+#   SSH_PORT         SSH port, normally 22
+#   SSH_USER         the deployment user on the server
+#   SSH_PRIVATE_KEY  private half of the dedicated deployment key
+#   SSH_KNOWN_HOSTS  the server's public host key (output of ssh-keyscan)
+#   DEPLOY_PATH      absolute path of the cloned repository on the server
+#
+# The production src/.env stays on the server. It is never read from GitHub.
+
+name: Deploy to production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Never run two deployments at the same time. A second push waits for the
+# first deployment to finish instead of racing it on the server.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy main to the server
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Start deployment
+        run: |
+          echo "==> Deploying commit ${GITHUB_SHA} from ${GITHUB_REF_NAME}"
+          echo "==> Triggered by: ${GITHUB_EVENT_NAME}"
+
+      - name: Prepare SSH key and known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          echo "==> Writing SSH key and known_hosts into ~/.ssh"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          echo "==> Done. Host key checking stays enabled."
+
+      - name: Deploy over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          echo "==> Connecting to the production server"
+
+          # Everything between the two DEPLOY_SCRIPT markers runs ON THE SERVER.
+          # The heredoc is quoted, so nothing is expanded on the GitHub runner;
+          # DEPLOY_PATH is handed over as the script's first argument ($1).
+          ssh -i ~/.ssh/deploy_key \
+              -p "${SSH_PORT:-22}" \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o BatchMode=yes \
+              "${SSH_USER}@${SSH_HOST}" \
+              bash -s -- "${DEPLOY_PATH}" <<'DEPLOY_SCRIPT'
+          set -euo pipefail
+
+          DEPLOY_PATH="$1"
+
+          echo "==> [1/7] Entering ${DEPLOY_PATH}"
+          cd "${DEPLOY_PATH}"
+
+          echo "==> [2/7] Checking this is a Git repository"
+          git rev-parse --is-inside-work-tree > /dev/null
+
+          echo "==> [3/7] Checking for local modifications on the server"
+          # The production copy must never be edited by hand. If it was, stop
+          # here and let a person decide, instead of overwriting their change.
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "ERROR: the server repository has local modifications:"
+            git status --short --untracked-files=no
+            echo "Deployment stopped. Inspect the server, commit or discard the change, then re-run."
+            exit 1
+          fi
+
+          echo "==> [4/7] Updating code from GitHub (main, fast-forward only)"
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          echo "Now at: $(git log --oneline -1)"
+
+          echo "==> [5/7] Installing Composer dependencies (src/)"
+          cd src
+          composer install --no-dev --optimize-autoloader --no-interaction
+
+          echo "==> [6/7] Running database migrations"
+          php spark migrate
+
+          echo "==> [7/7] Clearing the application cache"
+          php spark cache:clear
+
+          echo "==> Migration status after deployment"
+          php spark migrate:status
+
+          echo "==> Deployment complete"
+          DEPLOY_SCRIPT
+
+      # Optional health check. Uncomment once the production URL is final and
+      # replace the placeholder. The job then fails if the site does not answer
+      # with a successful HTTP status.
+      #
+      # - name: Health check
+      #   run: |
+      #     set -euo pipefail
+      #     echo "==> Checking the live site"
+      #     curl --fail --silent --show-error --location --output /dev/null \
+      #       https://REPLACE-WITH-PRODUCTION-DOMAIN/students
+      #     echo "==> Site is up"
+
+      - name: Remove SSH key from the runner
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
