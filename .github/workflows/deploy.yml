@@ -1,19 +1,114 @@
-name: 🚀 Deploy NORSU Student Record System
+# CI/CD for the NORSU Student Record System.
+#
+#   CI  (validate, test)  = check the code before deployment.
+#   CD  (deploy)          = deploy only if CI succeeds.
+#
+#   push to main ──> ✅ Validate ──> 🧪 Test ──> 🚀 Deploy ──> production server
+
+name: CI/CD - NORSU Student Record System
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
-concurrency:
-  group: production-deploy
-  cancel-in-progress: false
+env:
+  # Keep this equal to the PHP version on the production server.
+  PHP_VERSION: '8.5'
 
 jobs:
+  # ------------------------------------------------------------------
+  # CI step 1: Validate and test the code before deployment.
+  # Catches obvious problems: broken composer files, PHP syntax errors.
+  # ------------------------------------------------------------------
+  validate:
+    name: ✅ Validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: intl, mbstring, mysqli, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Check PHP syntax of the application
+        # Only our code in src/app. vendor/ is not ours to lint.
+        run: find app -name "*.php" -print0 | xargs -0 -n1 php -l
+
+  # ------------------------------------------------------------------
+  # CI step 2: run the PHPUnit test suite.
+  # Tests use the in-memory SQLite "tests" database group, so no
+  # database server and no production credentials are needed.
+  # ------------------------------------------------------------------
+  test:
+    name: 🧪 Test
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: intl, mbstring, mysqli, sqlite3
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer downloads
+        # Reuses downloaded packages between runs while composer.lock is unchanged.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('src/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies (including dev)
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests
+        # phpunit.dist.xml already configures the testing environment.
+        run: vendor/bin/phpunit --no-coverage
+
+  # ------------------------------------------------------------------
+  # CD: Deploy only if CI succeeds.
+  # Runs for pushes to main and manual runs. Never for pull requests.
+  # ------------------------------------------------------------------
   deploy:
+    name: 🚀 Deploy
+    needs:
+      - validate
+      - test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Never run two deployments at the same time.
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
 
     steps:
       - name: 🔐 Prepare SSH

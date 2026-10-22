@@ -75,14 +75,28 @@ src/app/Views/students/                   index, create, show, edit
 src/app/Config/Routes.php                 explicit student routes
 ```
 
-## Deployment with GitHub Actions
+## CI/CD with GitHub Actions
 
-Every push to `main` runs `.github/workflows/deploy.yml`, which connects to the
-production server over SSH and performs the same steps as a manual deployment.
-It can also be started by hand from the **Actions** tab (**🚀 Deploy NORSU Student Record System
-→ Run workflow**).
+Every push to `main` runs `.github/workflows/deploy.yml`:
 
-Required repository secrets (Settings → Secrets and variables → Actions):
+```
+Push to main → ✅ Validate → 🧪 Test → 🚀 Deploy
+```
+
+- **Validate** checks `composer.json`/`composer.lock` and the PHP syntax of `src/app`.
+- **Test** installs dependencies and runs the PHPUnit suite in `src/tests`
+  against an in-memory SQLite database.
+- **Deploy** connects to the production server over SSH and updates the live
+  application (`git pull --ff-only`, Composer, migrations, cache clear).
+
+**If validation or tests fail, production is not updated.**
+
+Pull requests targeting `main` run Validate and Test only. The workflow can also
+be started by hand from the **Actions** tab (**CI/CD - NORSU Student Record
+System → Run workflow**), which runs all three jobs.
+
+Required repository secrets (Settings → Secrets and variables → Actions), used
+only by the Deploy job:
 
 | Secret            | Contents                                                   |
 |-------------------|------------------------------------------------------------|
@@ -96,6 +110,12 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 The production `src/.env` is created once on the server and is never stored in
 GitHub. The workflow refuses to deploy if the server copy has local
 modifications.
+
+Running the tests locally:
+
+```bash
+warden env exec -T php-fpm vendor/bin/phpunit --no-coverage
+```
 
 Manual deployment, if Actions is unavailable:
 
