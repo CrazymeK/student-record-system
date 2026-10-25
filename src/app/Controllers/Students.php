@@ -27,12 +27,12 @@ class Students extends BaseController
     public function index(): string
     {
         $data = [
-            'title'    => 'Students',
+            'title'    => 'Students | HAHAHHAHAHAHAHAHAHAHAAHh',
             'students' => $this->studentModel->orderBy('id', 'DESC')->paginate(10),
             'pager'    => $this->studentModel->pager,
         ];
 
-        return view('students/index', $data)
+        return view('students/hahah', $data);
     }
 
     /**
