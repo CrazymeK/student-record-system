@@ -4,8 +4,10 @@
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0 text-primary">Students</h1>
+
+    <h1 class="h3 mb-0">Student Records Management System</h1>
     <a href="<?= site_url('students/create') ?>" class="btn btn-success">+ Add Student</a>
+
 </div>
 
 <?php if (empty($students)): ?>
