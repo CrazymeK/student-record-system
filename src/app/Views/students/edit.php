@@ -12,7 +12,7 @@
             <?= csrf_field() ?>
 
             <div class="mb-3">
-                <label for="student_number" class="form-label">Student Number</label>
+                <label for="student_number" class="form-label">Student Numbeeeeer</label>
                 <input type="text" name="student_number" id="student_number"
                        class="form-control <?= isset($errors['student_number']) ? 'is-invalid' : '' ?>"
                        value="<?= esc(old('student_number', $student['student_number'])) ?>">
