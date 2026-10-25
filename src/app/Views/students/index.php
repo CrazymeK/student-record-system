@@ -1,24 +1,25 @@
+
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Students</h1>
-    <a href="<?= site_url('students/create') ?>" class="btn btn-primary">+ Add Student</a>
+    <h1 class="h3 mb-0 text-primary">Students</h1>
+    <a href="<?= site_url('students/create') ?>" class="btn btn-success">+ Add Student</a>
 </div>
 
 <?php if (empty($students)): ?>
 
     <div class="alert alert-info">
         No student records yet.
-        <a href="<?= site_url('students/create') ?>" class="btn btn-sm btn-primary ms-2">Add Student</a>
+        <a href="<?= site_url('students/create') ?>" class="btn btn-sm btn-success ms-2">Add Student</a>
     </div>
 
 <?php else: ?>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-striped bg-white align-middle">
-            <thead class="table-dark">
+        <table class="table table-bordered table-striped bg-white align-middle border-primary">
+            <thead style="background-color: #183153; color: white;">
                 <tr>
                     <th>Student Number</th>
                     <th>Full Name</th>
@@ -35,8 +36,8 @@
                         <td><?= esc($student['email']) ?></td>
                         <td><?= esc($student['course']) ?></td>
                         <td class="text-nowrap">
-                            <a href="<?= site_url('students/' . $student['id']) ?>" class="btn btn-sm btn-info">View</a>
-                            <a href="<?= site_url('students/' . $student['id'] . '/edit') ?>" class="btn btn-sm btn-warning">Edit</a>
+                            <a href="<?= site_url('students/' . $student['id']) ?>" class="btn btn-sm btn-primary">View</a>
+                            <a href="<?= site_url('students/' . $student['id'] . '/edit') ?>" class="btn btn-sm" style="background-color: #fd7e14; color: white;">Edit</a>
                             <form method="post" action="<?= site_url('students/' . $student['id'] . '/delete') ?>"
                                   class="d-inline" onsubmit="return confirm('Delete this student?')">
                                 <?= csrf_field() ?>
