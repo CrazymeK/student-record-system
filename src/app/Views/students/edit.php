@@ -12,11 +12,7 @@
             <?= csrf_field() ?>
 
             <div class="mb-3">
-<<<<<<< Updated upstream
                 <label for="student_number" class="form-label">Student Numbeeeeer</label>
-=======
-                <label for="student_number" class="form-label">Student Numbeeeer</label>
->>>>>>> Stashed changes
                 <input type="text" name="student_number" id="student_number"
                        class="form-control <?= isset($errors['student_number']) ? 'is-invalid' : '' ?>"
                        value="<?= esc(old('student_number', $student['student_number'])) ?>">
