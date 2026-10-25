@@ -32,7 +32,7 @@ class Students extends BaseController
             'pager'    => $this->studentModel->pager,
         ];
 
-        return view('students/index', $data);
+        return view('students/index', $data)
     }
 
     /**
