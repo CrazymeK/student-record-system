@@ -23,7 +23,7 @@
                     <th>Student Number</th>
                     <th>Full Name</th>
                     <th>Email</th>
-                    <th>Course</th>
+                    <th style="color:pink;">Course</th>
                     <th class="text-nowrap">Actions</th>
                 </tr>
             </thead>
