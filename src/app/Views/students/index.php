@@ -3,8 +3,7 @@
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0", style="color: pink;">Students</h1>
-    <h1 class="h3 mb-0">Student Records Management System</h1>
+    <h1 class="h3 mb-0", style="color: pink;">Student Records Management System</h1>
     <a href="<?= site_url('students/create') ?>" class="btn btn-primary">+ Add Student</a>
 </div>
 
